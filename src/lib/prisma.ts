@@ -1,7 +1,23 @@
+import path from "path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
-const connectionString = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+function resolveSqliteUrl(url: string): string {
+  if (!url.startsWith("file:")) {
+    return url;
+  }
+
+  const filePart = url.slice(5);
+  if (path.isAbsolute(filePart)) {
+    return url;
+  }
+
+  const normalized = filePart.replace(/^\.\//, "");
+  return `file:${path.join(process.cwd(), normalized)}`;
+}
+
+const rawConnectionString = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+const connectionString = resolveSqliteUrl(rawConnectionString);
 const adapter = new PrismaBetterSqlite3({ url: connectionString });
 
 const globalForPrisma = globalThis as unknown as {
