@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scheduling Showcase
 
-## Getting Started
+A Next.js + Prisma scheduling app configured for showcase deployment on Vercel.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router + TypeScript
+- Prisma 7 + SQLite (`better-sqlite3` adapter)
+- NextAuth credentials login (JWT sessions)
+
+## Local Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Generate Prisma client and migrate SQLite:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+3. Seed demo data:
+
+```bash
+npm run db:seed
+```
+
+4. Start dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Demo Credentials
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Admin: `admin@example.com` / `admin123`
+- Supervisor: `supervisor@example.com` / `supervisor123`
+- Worker: `worker@example.com` / `worker123`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Showcase Mode (Vercel)
 
-## Learn More
+Use these env vars on Vercel:
 
-To learn more about Next.js, take a look at the following resources:
+- `DATABASE_URL=file:./prisma/dev.db` (or `file:./prisma/demo.db`)
+- `SHOWCASE_MODE=true`
+- `NEXT_PUBLIC_SHOWCASE_MODE=true`
+- `NEXTAUTH_URL` and `NEXTAUTH_SECRET`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Behavior in showcase mode:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- API write routes (`POST`/`PUT`/`DELETE`) return success but do not persist DB changes.
+- UI still shows writes (create/edit/delete/signup/cancel) via in-memory per-tab state.
+- All fake writes reset on refresh.
 
-## Deploy on Vercel
+## DB Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run db:migrate`
+- `npm run db:seed`
+- `npm run db:generate`
+- `npm run db:reset:sqlite`
+- `npm run db:demo:build`

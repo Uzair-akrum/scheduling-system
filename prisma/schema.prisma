@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  WORKER
+}
+
+enum StationStatus {
+  ACTIVE
+  MAINTENANCE
+  OFFLINE
+}
+
+enum ShiftSignupStatus {
+  CONFIRMED
+  CANCELLED
+  NO_SHOW
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String?
+  email          String   @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  role           UserRole @default(WORKER)
+  skills         Json     @default("[]")
+  phone          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // App relations
+  shiftSignups  ShiftSignup[]
+  createdShifts Shift[]       @relation("ShiftCreator")
+
+  @@map("users")
+}
+
+model WorkStation {
+  id             String        @id @default(cuid())
+  name           String
+  description    String?
+  category       String
+  capacity       Int           @default(1)
+  location       String?
+  status         StationStatus @default(ACTIVE)
+  requiredSkills Json          @default("[]")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  shifts Shift[]
+
+  @@map("work_stations")
+}
+
+model Shift {
+  id             String    @id @default(cuid())
+  title          String
+  workStationId  String    @map("work_station_id")
+  startTime      DateTime  @map("start_time")
+  endTime        DateTime  @map("end_time")
+  capacity       Int       @default(1)
+  notes          String?
+  isRecurring    Boolean   @default(false) @map("is_recurring")
+  recurrenceRule String?   @map("recurrence_rule")
+  recurrenceEnd  DateTime? @map("recurrence_end")
+  parentShiftId  String?   @map("parent_shift_id")
+  originalDate   DateTime? @map("original_date")
+  isCancelled    Boolean   @default(false) @map("is_cancelled")
+  createdById    String    @map("created_by_id")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  workStation WorkStation @relation(fields: [workStationId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation("ShiftCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  signups     ShiftSignup[]
+
+  // Self-relation for recurring shifts
+  parentShift Shift?           @relation("ShiftRecurrence", fields: [parentShiftId], references: [id])
+  childShifts Shift[]          @relation("ShiftRecurrence")
+  exceptions  ShiftException[]
+
+  @@map("shifts")
+}
+
+model ShiftException {
+  id             String   @id @default(cuid())
+  shiftId        String   @map("shift_id")
+  occurrenceDate DateTime @map("occurrence_date")
+  isCancelled    Boolean  @default(false) @map("is_cancelled")
+  modifiedShiftId String? @map("modified_shift_id")
+  createdAt      DateTime @default(now())
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@unique([shiftId, occurrenceDate])
+  @@map("shift_exceptions")
+}
+
+model ShiftSignup {
+  id             String            @id @default(cuid())
+  shiftId        String            @map("shift_id")
+  userId         String            @map("user_id")
+  status         ShiftSignupStatus @default(CONFIRMED)
+  occurrenceDate DateTime?         @map("occurrence_date")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shiftId, userId, occurrenceDate])
+  @@map("shift_signups")
+}
