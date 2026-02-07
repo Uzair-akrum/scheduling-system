@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -57,6 +58,7 @@ export function ScheduleCalendar({ stations }: ScheduleCalendarProps) {
     start: new Date(),
     end: new Date(),
   });
+  const isMobile = useIsMobile();
 
   const fetchEvents = useCallback(
     async (start: Date, end: Date) => {
@@ -137,11 +139,11 @@ export function ScheduleCalendar({ stations }: ScheduleCalendarProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Filter by Station:</span>
           <Select value={selectedStation} onValueChange={setSelectedStation}>
-            <SelectTrigger className="w-64">
+            <SelectTrigger className="w-full md:w-64">
               <SelectValue placeholder="All Stations" />
             </SelectTrigger>
             <SelectContent>
@@ -155,7 +157,7 @@ export function ScheduleCalendar({ stations }: ScheduleCalendarProps) {
           </Select>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex flex-wrap items-center gap-2 md:ml-auto">
           {Object.entries(categoryColors).map(
             ([category, color]) =>
               category !== "default" && (
@@ -177,15 +179,23 @@ export function ScheduleCalendar({ stations }: ScheduleCalendarProps) {
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay",
-          }}
+          headerToolbar={
+            isMobile
+              ? {
+                  left: "prev,next",
+                  center: "title",
+                  right: "dayGridMonth,timeGridWeek",
+                }
+              : {
+                  left: "prev,next today",
+                  center: "title",
+                  right: "dayGridMonth,timeGridWeek,timeGridDay",
+                }
+          }
           events={events}
           datesSet={handleDatesSet}
           eventClick={handleEventClick}
-          height="70vh"
+          height={isMobile ? "60vh" : "70vh"}
           slotMinTime="06:00:00"
           slotMaxTime="22:00:00"
           allDaySlot={false}

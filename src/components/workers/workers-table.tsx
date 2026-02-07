@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import {
   ColumnDef,
@@ -60,6 +61,7 @@ interface WorkersTableProps {
 
 export function WorkersTable({ workers }: WorkersTableProps) {
   const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
   useShowcaseStoreVersion();
   const data = useMemo(() => {
     const filtered = workers
@@ -94,101 +96,115 @@ export function WorkersTable({ workers }: WorkersTableProps) {
     }
   };
 
-  const columns: ColumnDef<WorkerWithCount>[] = [
-    {
-      accessorKey: "name",
-      header: "Name",
-      cell: ({ row }) => (
-        <Link
-          href={`/dashboard/workers/${row.original.id}`}
-          className="font-medium hover:underline"
-        >
-          {row.getValue("name") || "Unnamed"}
-        </Link>
-      ),
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-    },
-    {
-      accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => {
-        const role = row.getValue("role") as UserRole;
-        return (
-          <Badge className={roleColors[role]}>
-            {role}
-          </Badge>
-        );
+  const allColumns = useMemo<ColumnDef<WorkerWithCount>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => (
+          <Link
+            href={`/dashboard/workers/${row.original.id}`}
+            className="font-medium hover:underline"
+          >
+            {row.getValue("name") || "Unnamed"}
+          </Link>
+        ),
       },
-    },
-    {
-      accessorKey: "skills",
-      header: "Skills",
-      cell: ({ row }) => {
-        const skills = row.getValue("skills") as string[];
-        return (
-          <div className="flex flex-wrap gap-1">
-            {skills.slice(0, 3).map((skill) => (
-              <Badge key={skill} variant="outline" className="text-xs">
-                {skill}
-              </Badge>
-            ))}
-            {skills.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{skills.length - 3}
-              </Badge>
-            )}
-          </div>
-        );
+      {
+        accessorKey: "email",
+        header: "Email",
       },
-    },
-    {
-      accessorKey: "isActive",
-      header: "Status",
-      cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
-        return (
-          <Badge variant={isActive ? "default" : "secondary"}>
-            {isActive ? "Active" : "Inactive"}
-          </Badge>
-        );
+      {
+        accessorKey: "role",
+        header: "Role",
+        cell: ({ row }) => {
+          const role = row.getValue("role") as UserRole;
+          return (
+            <Badge className={roleColors[role]}>
+              {role}
+            </Badge>
+          );
+        },
       },
-    },
-    {
-      accessorKey: "_count.shiftSignups",
-      header: "Shifts",
-      cell: ({ row }) => row.original._count.shiftSignups,
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <Link href={`/dashboard/workers/${row.original.id}/edit`}>
-              <DropdownMenuItem>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+      {
+        accessorKey: "skills",
+        header: "Skills",
+        cell: ({ row }) => {
+          const skills = row.getValue("skills") as string[];
+          const displayCount = isMobile ? 2 : 3;
+          return (
+            <div className="flex flex-wrap gap-1">
+              {skills.slice(0, displayCount).map((skill) => (
+                <Badge key={skill} variant="outline" className="text-xs">
+                  {skill}
+                </Badge>
+              ))}
+              {skills.length > displayCount && (
+                <Badge variant="outline" className="text-xs">
+                  +{skills.length - displayCount}
+                </Badge>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "isActive",
+        header: "Status",
+        cell: ({ row }) => {
+          const isActive = row.getValue("isActive") as boolean;
+          return (
+            <Badge variant={isActive ? "default" : "secondary"}>
+              {isActive ? "Active" : "Inactive"}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "_count.shiftSignups",
+        header: "Shifts",
+        cell: ({ row }) => row.original._count.shiftSignups,
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <Link href={`/dashboard/workers/${row.original.id}/edit`}>
+                <DropdownMenuItem>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => handleDelete(row.original.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
               </DropdownMenuItem>
-            </Link>
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => handleDelete(row.original.id)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    [isMobile]
+  );
+
+  const columns = useMemo(() => {
+    if (isMobile) {
+      return allColumns.filter((col) => {
+        const accessorKey = (col as { accessorKey?: string }).accessorKey;
+        return accessorKey !== "email" && accessorKey !== "_count.shiftSignups";
+      });
+    }
+    return allColumns;
+  }, [allColumns, isMobile]);
 
   const table = useReactTable({
     data,

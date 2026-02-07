@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import {
   ColumnDef,
@@ -47,6 +48,7 @@ interface ShiftsTableProps {
 
 export function ShiftsTable({ shifts }: ShiftsTableProps) {
   const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
   useShowcaseStoreVersion();
   const data = useMemo(() => {
     const filtered = shifts.filter((shift) => !locallyDeletedIds.has(shift.id));
@@ -73,93 +75,107 @@ export function ShiftsTable({ shifts }: ShiftsTableProps) {
     }
   };
 
-  const columns: ColumnDef<ShiftWithRelations>[] = [
-    {
-      accessorKey: "title",
-      header: "Title",
-      cell: ({ row }) => (
-        <Link
-          href={`/dashboard/shifts/${row.original.id}`}
-          className="font-medium hover:underline"
-        >
-          {row.getValue("title")}
-        </Link>
-      ),
-    },
-    {
-      accessorKey: "workStation",
-      header: "Station",
-      cell: ({ row }) => row.original.workStation.name,
-    },
-    {
-      id: "shiftDate",
-      accessorKey: "startTime",
-      header: "Date",
-      cell: ({ row }) => format(new Date(row.original.startTime), "MMM d, yyyy"),
-    },
-    {
-      id: "shiftTime",
-      accessorKey: "startTime",
-      header: "Time",
-      cell: ({ row }) => {
-        const shift = row.original;
-        return (
-          <span className="text-sm">
-            {format(new Date(shift.startTime), "h:mm a")} -{" "}
-            {format(new Date(shift.endTime), "h:mm a")}
-          </span>
-        );
+  const allColumns = useMemo<ColumnDef<ShiftWithRelations>[]>(
+    () => [
+      {
+        accessorKey: "title",
+        header: "Title",
+        cell: ({ row }) => (
+          <Link
+            href={`/dashboard/shifts/${row.original.id}`}
+            className="font-medium hover:underline"
+          >
+            {row.getValue("title")}
+          </Link>
+        ),
       },
-    },
-    {
-      accessorKey: "capacity",
-      header: "Signups",
-      cell: ({ row }) => {
-        const shift = row.original;
-        const isFull = shift._count.signups >= shift.capacity;
-        return (
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span>
-              {shift._count.signups} / {shift.capacity}
+      {
+        accessorKey: "workStation",
+        header: "Station",
+        cell: ({ row }) => row.original.workStation.name,
+      },
+      {
+        id: "shiftDate",
+        accessorKey: "startTime",
+        header: "Date",
+        cell: ({ row }) => format(new Date(row.original.startTime), "MMM d, yyyy"),
+      },
+      {
+        id: "shiftTime",
+        accessorKey: "startTime",
+        header: "Time",
+        cell: ({ row }) => {
+          const shift = row.original;
+          return (
+            <span className="text-sm">
+              {format(new Date(shift.startTime), "h:mm a")} -{" "}
+              {format(new Date(shift.endTime), "h:mm a")}
             </span>
-            {isFull && (
-              <Badge variant="secondary" className="text-xs">
-                Full
-              </Badge>
-            )}
-          </div>
-        );
+          );
+        },
       },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <Link href={`/dashboard/shifts/${row.original.id}/edit`}>
-              <DropdownMenuItem>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+      {
+        accessorKey: "capacity",
+        header: "Signups",
+        cell: ({ row }) => {
+          const shift = row.original;
+          const isFull = shift._count.signups >= shift.capacity;
+          return (
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span>
+                {shift._count.signups} / {shift.capacity}
+              </span>
+              {isFull && (
+                <Badge variant="secondary" className="text-xs">
+                  Full
+                </Badge>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <Link href={`/dashboard/shifts/${row.original.id}/edit`}>
+                <DropdownMenuItem>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => handleDelete(row.original.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
               </DropdownMenuItem>
-            </Link>
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => handleDelete(row.original.id)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    []
+  );
+
+  const columns = useMemo(() => {
+    if (isMobile) {
+      return allColumns.filter((col) => {
+        const id = (col as { id?: string }).id;
+        const accessorKey = (col as { accessorKey?: string }).accessorKey;
+        return id !== "shiftDate" && accessorKey !== "startTime";
+      });
+    }
+    return allColumns;
+  }, [allColumns, isMobile]);
 
   const table = useReactTable({
     data,

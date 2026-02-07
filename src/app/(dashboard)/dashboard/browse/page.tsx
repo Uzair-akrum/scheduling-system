@@ -146,13 +146,13 @@ export default function BrowseShiftsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Browse Available Shifts</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold">Browse Available Shifts</h1>
 
       <div className="flex flex-wrap gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Category:</span>
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>

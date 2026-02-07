@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import {
   ColumnDef,
@@ -52,6 +53,7 @@ interface StationsTableProps {
 
 export function StationsTable({ stations }: StationsTableProps) {
   const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
   useShowcaseStoreVersion();
   const data = useMemo(() => {
     const filtered = stations
@@ -84,76 +86,89 @@ export function StationsTable({ stations }: StationsTableProps) {
     }
   };
 
-  const columns: ColumnDef<StationWithCount>[] = [
-    {
-      accessorKey: "name",
-      header: "Name",
-      cell: ({ row }) => (
-        <Link
-          href={`/dashboard/stations/${row.original.id}`}
-          className="font-medium hover:underline"
-        >
-          {row.getValue("name")}
-        </Link>
-      ),
-    },
-    {
-      accessorKey: "category",
-      header: "Category",
-    },
-    {
-      accessorKey: "location",
-      header: "Location",
-    },
-    {
-      accessorKey: "capacity",
-      header: "Capacity",
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as StationStatus;
-        return (
-          <Badge className={statusColors[status]}>
-            {status}
-          </Badge>
-        );
+  const allColumns = useMemo<ColumnDef<StationWithCount>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => (
+          <Link
+            href={`/dashboard/stations/${row.original.id}`}
+            className="font-medium hover:underline"
+          >
+            {row.getValue("name")}
+          </Link>
+        ),
       },
-    },
-    {
-      accessorKey: "_count.shifts",
-      header: "Shifts",
-      cell: ({ row }) => row.original._count.shifts,
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <Link href={`/dashboard/stations/${row.original.id}/edit`}>
-              <DropdownMenuItem>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+      {
+        accessorKey: "category",
+        header: "Category",
+      },
+      {
+        accessorKey: "location",
+        header: "Location",
+      },
+      {
+        accessorKey: "capacity",
+        header: "Capacity",
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.getValue("status") as StationStatus;
+          return (
+            <Badge className={statusColors[status]}>
+              {status}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "_count.shifts",
+        header: "Shifts",
+        cell: ({ row }) => row.original._count.shifts,
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <Link href={`/dashboard/stations/${row.original.id}/edit`}>
+                <DropdownMenuItem>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => handleDelete(row.original.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
               </DropdownMenuItem>
-            </Link>
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => handleDelete(row.original.id)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    []
+  );
+
+  const columns = useMemo(() => {
+    if (isMobile) {
+      return allColumns.filter((col) => {
+        const accessorKey = (col as { accessorKey?: string }).accessorKey;
+        return accessorKey !== "location" && accessorKey !== "_count.shifts";
+      });
+    }
+    return allColumns;
+  }, [allColumns, isMobile]);
 
   const table = useReactTable({
     data,
